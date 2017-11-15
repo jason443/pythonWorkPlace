@@ -5,6 +5,8 @@ ___author__ = '3115005056'
 
 
 import math
+import operator
+
 
 #初始化数据集
 def create_data_set():
@@ -21,6 +23,11 @@ def create_data_set():
 #构建决策树
 def create_tree(data_set, attribute):
     label_list = [labels[-1] for labels in data_set]
+    if label_list.count(label_list[0]) == len(label_list): #如果所以标签都一样，则无需再分类
+        return label_list[0]
+
+    if len(data_set[0]) == 1: #没有可分类的属性
+        return no_more_attribute(label_list)
 
     best_attribute_num = find_split(data_set)
     best_attribute = attribute[best_attribute_num]
@@ -29,9 +36,20 @@ def create_tree(data_set, attribute):
     attribute_values_set = set(attribute_values) #去除重复值
     del(attribute[best_attribute_num])
     for values in attribute_values_set:
-        sub_data_set = split_data_set(data_set, best_attribute, values)
+        sub_data_set = split_data_set(data_set, best_attribute_num, values)
         tree[best_attribute][values] = create_tree(sub_data_set, attribute)
     return tree
+
+
+#没有可分类属性则选择标签数最多的值返回
+def no_more_attribute(data_set):
+    label_count = {}
+    for label in data_set:
+        if label not in label_count.keys():
+            label_count[label] = 0
+        label_count[label] += 1
+    sort_label_count = sorted(label_count.iteritems(), key=operator.itemgetter(1), reverse=True)
+    return sort_label_count[0][0]
 
 
 #逐个属性计算信息增益gain，返回使gain最大的属性
@@ -84,6 +102,26 @@ def calculate_entropy(data_set):
     return entropy
 
 
-data_set, attribute = create_data_set()
-tree = create_tree(data_set, attribute)
+#预测Label
+def fore_see_label(tree, attribute, data):
+    tree_key = list(tree.keys())[0]
+    attribute_num = -1
+    for index in range(len(attribute)):
+        if attribute[index] == tree_key:
+            attribute_num = index
+    data_split = data[attribute_num]
+    tree_value = tree[tree_key][data_split]
+    if isinstance(tree_value, str):
+        return tree_value
+    else:
+        return fore_see_label(tree_value,attribute,data)
 
+
+data_set, attribute = create_data_set()
+attribute_back_up = []
+for item in attribute:
+    attribute_back_up.append(item)
+tree = create_tree(data_set, attribute)
+print(tree)
+test_data = ['RAIN', 'MILD', 'HIGH', 'STRONG']
+print(fore_see_label(tree, attribute_back_up, test_data))
